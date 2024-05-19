@@ -6,6 +6,3 @@ test/figures/
 .github/
 .ipynb_checkpoints/
 pykan.egg-info/
-LICENSE
-requirements.txt
-setup.py
