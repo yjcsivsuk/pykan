@@ -11,6 +11,9 @@ from tqdm import tqdm
 import random
 import copy
 
+'''
+KAN.py:包括定义KAN模型的主要类或函数。由多个KANLayer和Symbolic_KANLayer组成。支持前向传播、搜索模式设置、符号激活函数的固定和建议、模型训练、剪枝、可视化等功能。
+'''
 
 class KAN(nn.Module):
     '''

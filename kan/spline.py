@@ -1,5 +1,8 @@
 import torch
 
+'''
+spline.py:定义了KAN模型中使用的样条函数。包括计算B样条基函数、从系数生成样条曲线、从样条曲线估计系数。
+'''
 
 def B_batch(x, grid, k=0, extend=True, device='cpu'):
     '''

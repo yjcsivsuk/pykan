@@ -2,6 +2,10 @@ import torch
 from functools import reduce
 from torch.optim import Optimizer
 
+'''
+LBFGS.py:实现L-BFGS优化器，用于KAN模型的训练。在训练过程中优化KAN模型的参数。
+'''
+
 __all__ = ['LBFGS']
 
 def _cubic_interpolate(x1, f1, g1, x2, f2, g2, bounds=None):

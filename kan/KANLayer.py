@@ -3,6 +3,9 @@ import torch.nn as nn
 import numpy as np
 from .spline import *
 
+'''
+KANLayer.py:定义了KAN模型中使用的自定义层，包括模型中特殊的激活函数、其他处理层等，是构成KAN的基础。
+'''
 
 class KANLayer(nn.Module):
     """
@@ -123,7 +126,7 @@ class KANLayer(nn.Module):
         if isinstance(scale_base, float):
             self.scale_base = torch.nn.Parameter(torch.ones(size, device=device) * scale_base).requires_grad_(sb_trainable)  # make scale trainable
         else:
-            self.scale_base = torch.nn.Parameter(torch.FloatTensor(scale_base).to(device)).requires_grad_(sb_trainable)
+            self.scale_base = torch.nn.Parameter(torch.FloatTensor(scale_base).to(device)).requires_grad_(sb_trainable)  # 为了提高精度，改为FloatTensor。但每次运行前，都需要设置torch.set_default_dtype(torch.float64)。
         self.scale_sp = torch.nn.Parameter(torch.ones(size, device=device) * scale_sp).requires_grad_(sp_trainable)  # make scale trainable
         self.base_fun = base_fun
 

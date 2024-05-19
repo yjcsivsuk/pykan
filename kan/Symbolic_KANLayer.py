@@ -4,7 +4,9 @@ import numpy as np
 import sympy
 from .utils import *
 
-
+'''
+Symbolic_KANLayer.py:处理KANLayer中的符号计算。
+'''
 
 class Symbolic_KANLayer(nn.Module):
     '''
