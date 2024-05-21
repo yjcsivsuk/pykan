@@ -1,7 +1,3 @@
-# Burgers equation.
-# 09 / 14 / 2021
-# Edgar A. M. O.
-
 import torch
 import torch.nn as nn
 import numpy as np
@@ -34,11 +30,12 @@ class PhysicsInformedNN():
 
         # initialize net:
         self.create_net()
+        # self.net.apply(self.init_weights)
 
         # this optimizer updates the weights and biases of the net:
         self.optimizer = torch.optim.LBFGS(self.net.parameters(),
                                            lr=1,
-                                           max_iter=50000,
+                                           max_iter=2000,
                                            max_eval=50000,
                                            history_size=50,
                                            tolerance_grad=1e-05,
@@ -57,12 +54,21 @@ class PhysicsInformedNN():
     def create_net(self):
         """ net takes a batch of two inputs: (n, 2) --> (n, 1) """
         self.net = nn.Sequential(
-            nn.Linear(2, 100), nn.Tanh(),
-            nn.Linear(100, 100), nn.Tanh(),
-            nn.Linear(100, 100), nn.Tanh(),
-            nn.Linear(100, 100), nn.Tanh(),
-            nn.Linear(100, 1)
-        )
+            nn.Linear(2, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 20), nn.Tanh(),
+            nn.Linear(20, 1))
+
+    def init_weights(self, m):
+        if type(m) == nn.Linear:
+            torch.nn.init.xavier_normal_(m.weight, 0.1)
+            m.bias.data.fill_(0.001)
 
     def net_u(self, x, t):
         u = self.net(torch.hstack((x, t)))
@@ -74,12 +80,6 @@ class PhysicsInformedNN():
         u_t = torch.autograd.grad(
             u, t,
             grad_outputs=torch.ones_like(u),
-            retain_graph=True,
-            create_graph=True)[0]
-        
-        u_tt = torch.autograd.grad(
-            u_t, t,
-            grad_outputs=torch.ones_like(u_t),
             retain_graph=True,
             create_graph=True)[0]
 
@@ -95,7 +95,7 @@ class PhysicsInformedNN():
             retain_graph=True,
             create_graph=True)[0]
 
-        f = u_xx + u_tt + 2 * torch.pi **2 * torch.sin(torch.pi * x) * torch.sin(torch.pi * t)
+        f = u_t + (u * u_x) - (nu * u_xx)
 
         return f
 
@@ -106,7 +106,7 @@ class PhysicsInformedNN():
         from mpl_toolkits.axes_grid1 import make_axes_locatable
 
         x = torch.linspace(-1, 1, 200)
-        t = torch.linspace(-1, 1, 200)
+        t = torch.linspace(0, 1, 100)
 
         # x & t grids:
         X, T = torch.meshgrid(x, t, indexing=None)
@@ -139,7 +139,7 @@ class PhysicsInformedNN():
         cax = divider.append_axes("right", size="5%", pad=0.10)
         cbar = fig.colorbar(h, cax=cax)
         cbar.ax.tick_params(labelsize=10)
-        plt.savefig('./2D_poisson_pinn.png')
+        plt.savefig('./test/burgers_pinn.png')
         plt.show()
 
     def closure(self):
@@ -153,7 +153,7 @@ class PhysicsInformedNN():
         # losses:
         u_loss = self.loss(u_prediction, self.u)
         f_loss = self.loss(f_prediction, self.null)
-        self.ls = u_loss + f_loss
+        self.ls = 0.01 * u_loss + f_loss
 
         # derivative with respect to net's weights:
         self.ls.backward()
@@ -163,7 +163,7 @@ class PhysicsInformedNN():
 
         # print report:
         if not self.iter % 100:
-            print('Epoch: {0:}, Loss: {1:6.3f}'.format(self.iter, self.ls))
+            print('Epoch: {0:}, Loss: {1:.2e}'.format(self.iter, self.ls))
 
         return self.ls
 
@@ -175,34 +175,31 @@ class PhysicsInformedNN():
 
 if __name__ == '__main__':
 
+    nu = 0.01 / np.pi  # constant in the diff. equation
     N_u = 100  # number of data points in the boundaries
-    N_f = 100  # number of collocation points
+    N_f = 1000  # number of collocation points
 
     # X_u_train: a set of pairs (x, t) located at:
-    # x = 1, t = [-1, 1]
-    # x = -1, t = [-1, 1]
-    # t = -1, x = [-1, 1]
-    # t = 1, x = [-1, 1]
-    x_right = np.ones((N_u // 4, 1), dtype=float)
-    x_left = np.ones((N_u // 4, 1), dtype=float) * (-1)
-    t_up = np.ones((N_u // 4, 1), dtype=float)
-    t_down = np.ones((N_u // 4, 1), dtype=float) * (-1)
+    # x =  1, t = [0,  1] 0
+    # x = -1, t = [0,  1] 0
+    # t =  0, x = [-1, 1] -sin(pi*x)
+    x_upper = np.ones((N_u // 4, 1), dtype=float)  # (25,1)
+    x_lower = np.ones((N_u // 4, 1), dtype=float) * (-1)  # (25,1)
+    t_zero = np.zeros((N_u // 2, 1), dtype=float)  # (50,1)
 
-    t_right = 2 * np.random.rand(N_u // 4, 1) - 1
-    t_left = 2 * np.random.rand(N_u // 4, 1) - 1
-    x_up = 2 * np.random.rand(N_u // 4, 1) - 1
-    x_down = 2 * np.random.rand(N_u // 4, 1) - 1
+    t_upper = np.random.rand(N_u // 4, 1)  # (25,1)
+    t_lower = np.random.rand(N_u // 4, 1)  # (25,1)
+    x_zero = (-1) + np.random.rand(N_u // 2, 1) * (1 - (-1))  # (50,1)
 
     # stack uppers, lowers and zeros:
-    X_right = np.hstack((x_right, t_right))  # 右边界的[x,t].T
-    X_left = np.hstack((x_left, t_left))  # 左边界的[x,t].T
-    X_up = np.hstack((x_up, t_up))  # 上边界的[x,t].T
-    X_down = np.hstack((x_down, t_down)) # 下边界的[x,t].T
+    X_upper = np.hstack((x_upper, t_upper))  # (25,2) 上边界的[x,t].T
+    X_lower = np.hstack((x_lower, t_lower))  # (25,2) 下边界的[x,t].T
+    X_zero = np.hstack((x_zero, t_zero))  # (50,2) 左边界的[x,t].T
 
     # each one of these three arrays has 2 columns, 
     # now we stack them vertically, the resulting array will also have 2 
     # columns and 100 rows:
-    X_u_train = np.vstack((X_right, X_left, X_up, X_down))  # 将边界值拼成(100,2)，作为边界采样点的输入值
+    X_u_train = np.vstack((X_upper, X_lower, X_zero))  # 将边界值拼成(100,2)，作为边界采样点的输入值
 
     # shuffle X_u_train:
     index = np.arange(0, N_u)
@@ -222,13 +219,12 @@ if __name__ == '__main__':
     X_f_train = np.vstack((X_f_train, X_u_train))  # (10100,2) 内部+边界采样点 作为输入值
 
     # make u_train
-    u_right = np.zeros((N_u // 4, 1), dtype=float)
-    u_left = np.zeros((N_u // 4, 1), dtype=float)
-    u_up = -np.sin(np.pi * x_up)  # 随机取值作为边界上的真实值，不是真正burgers方程的值，所以无法进行预测
-    u_down = -np.sin(np.pi * x_down)
+    u_upper = np.zeros((N_u // 4, 1), dtype=float)
+    u_lower = np.zeros((N_u // 4, 1), dtype=float)
+    u_zero = -np.sin(np.pi * x_zero)
 
     # stack them in the same order as X_u_train was stacked:
-    u_train = np.vstack((u_right, u_left, u_up, u_down))
+    u_train = np.vstack((u_upper, u_lower, u_zero))
 
     # match indices with X_u_train
     u_train = u_train[index, :]  # (100,1) 边界采样点 作为标签
