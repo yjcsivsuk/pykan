@@ -101,7 +101,8 @@ class Symbolic_KANLayer(nn.Module):
         >>> y.shape, postacts.shape
         (torch.Size([100, 5]), torch.Size([100, 5, 3]))
         '''
-        
+        if isinstance(x, list):
+            x = torch.stack(x, dim=-1)
         batch = x.shape[0]
         postacts = []
 

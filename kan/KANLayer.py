@@ -168,6 +168,8 @@ class KANLayer(nn.Module):
          torch.Size([100, 5, 3]),
          torch.Size([100, 5, 3]))
         '''
+        if isinstance(x, list):
+            x = torch.stack(x, dim=-1)
         batch = x.shape[0]
         # x: shape (batch, in_dim) => shape (size, batch) (size = out_dim * in_dim)
         x = torch.einsum('ij,k->ikj', x, torch.ones(self.out_dim, device=self.device)).reshape(batch, self.size).permute(1, 0)

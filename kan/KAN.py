@@ -307,7 +307,6 @@ class KAN(nn.Module):
         self.acts_scale_std = []
         # self.neurons_scale = []
         if isinstance(x, list):
-            # pd_hats(list:3): (dx,dy,dxdy)
             x = torch.stack(x, dim=-1)
         self.acts.append(x)  # acts shape: (batch, width[l])
 
