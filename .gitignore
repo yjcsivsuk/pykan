@@ -6,3 +6,14 @@ test/figures/
 .github/
 .ipynb_checkpoints/
 pykan.egg-info/
+docs/_build/
+docs/_static/
+docs/_templates
+test
+sr
+pde
+hidden
+molecule
+expressiveness
+figures
+molecule
