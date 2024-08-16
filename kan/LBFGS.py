@@ -271,7 +271,8 @@ class LBFGS(Optimizer):
             else:
                 view = p.grad.view(-1)
             views.append(view)
-        return torch.cat(views, 0)
+        device = views[0].device
+        return torch.cat(views, dim=0)
 
     def _add_grad(self, step_size, update):
         offset = 0

@@ -63,13 +63,13 @@ def B_batch(x, grid, k=0, extend=True, device='cpu'):
         value = (x - grid[:, :-(k + 1)]) / (grid[:, k:-1] - grid[:, :-(k + 1)]) * B_km1[:, :-1] + (
                     grid[:, k + 1:] - x) / (grid[:, k + 1:] - grid[:, 1:(-k)]) * B_km1[:, 1:]'''
     
-    x = x.unsqueeze(dim=2).to(device)
-    grid = grid.unsqueeze(dim=0).to(device)
+    x = x.unsqueeze(dim=2)
+    grid = grid.unsqueeze(dim=0)
     
     if k == 0:
         value = (x >= grid[:, :, :-1]) * (x < grid[:, :, 1:])
     else:
-        B_km1 = B_batch(x[:,:,0], grid=grid[0], k=k - 1, device=device)
+        B_km1 = B_batch(x[:,:,0], grid=grid[0], k=k - 1)
         
         value = (x - grid[:, :, :-(k + 1)]) / (grid[:, :, k:-1] - grid[:, :, :-(k + 1)]) * B_km1[:, :, :-1] + (
                     grid[:, :, k + 1:] - x) / (grid[:, :, k + 1:] - grid[:, :, 1:(-k)]) * B_km1[:, :, 1:]
@@ -116,18 +116,14 @@ def coef2curve(x_eval, grid, coef, k, device="cpu"):
     '''
     # x_eval: (size, batch), grid: (size, grid), coef: (size, coef)
     # coef: (size, coef), B_batch: (size, coef, batch), summer over coef
-    '''if coef.dtype != x_eval.dtype:
-        coef = coef.to(x_eval.dtype)
-    y_eval = torch.einsum('ij,ijk->ik', coef, B_batch(x_eval, grid, k, device=device))'''
     
-    b_splines = B_batch(x_eval, grid, k=k).to(device) # (batch, in_dim, n_coef)
-    # coef (in_dim, out_dim, n_coef)
-    #print(b_splines.shape, coef.shape)
-    y_eval = torch.einsum('ijk,jlk->ijl', b_splines, coef)
+    b_splines = B_batch(x_eval, grid, k=k) # (batch, in_dim, n_coef)
+    y_eval = torch.einsum('ijk,jlk->ijl', b_splines, coef.to(b_splines.device))
+    
     return y_eval
 
 
-def curve2coef(x_eval, y_eval, grid, k, device="cpu"):
+def curve2coef(x_eval, y_eval, grid, k, lamb=1e-8):
     '''
     converting B-spline curves to B-spline coefficients using least squares.
     
@@ -166,14 +162,25 @@ def curve2coef(x_eval, y_eval, grid, k, device="cpu"):
     out_dim = y_eval.shape[2]
     n_coef = grid.shape[1] - k - 1
     #mat = B_batch(x_eval, grid, k, device=device).permute(0, 2, 1)
-    mat = B_batch(x_eval, grid, k, device=device) # (batch, in_dim, G+k)
+    mat = B_batch(x_eval, grid, k) # (batch, in_dim, G+k)
     mat = mat.permute(1,0,2)[:,None,:,:].expand(in_dim, out_dim, batch, n_coef) # (in_dim, out_dim, batch, n_coef)
     # coef shape: (in_dim, outdim, G+k) 
     y_eval = y_eval.permute(1,2,0).unsqueeze(dim=3) # y_eval: (in_dim, out_dim, batch, 1)
-    #print(mat)
-    coef = torch.linalg.lstsq(mat.to(device), y_eval.to(device),
-                              driver='gelsy' if device == 'cpu' else 'gels').solution[:,:,:,0]
-    return coef.to(device)
+    device = mat.device
+    
+    
+    #coef = torch.linalg.lstsq(mat, y_eval,
+                             #driver='gelsy' if device == 'cpu' else 'gels').solution[:,:,:,0]
+        
+    XtX = torch.einsum('ijmn,ijnp->ijmp', mat.permute(0,1,3,2), mat)
+    Xty = torch.einsum('ijmn,ijnp->ijmp', mat.permute(0,1,3,2), y_eval)
+    n1, n2, n = XtX.shape[0], XtX.shape[1], XtX.shape[2]
+    identity = torch.eye(n,n)[None, None, :, :].expand(n1, n2, n, n).to(device)
+    A = XtX + lamb * identity
+    B = Xty
+    coef = (A.pinverse() @ B)[:,:,:,0]
+    
+    return coef
 
 
 def extend_grid(grid, k_extend=0):

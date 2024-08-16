@@ -6,7 +6,7 @@ with open("README.md", "r", encoding="utf8") as fh:
 
 setuptools.setup(
     name="pykan",
-    version="0.2.1",
+    version="0.2.5",
     author="Ziming Liu",
     author_email="zmliu@mit.edu",
     description="Kolmogorov Arnold Networks",
@@ -18,6 +18,8 @@ setuptools.setup(
     package_data={  
         'pykan': [
             'figures/lock.png',
+            'assets/img/sum_symbol.png',
+            'assets/img/mult_symbol.png',
         ],
     },
     classifiers=[
