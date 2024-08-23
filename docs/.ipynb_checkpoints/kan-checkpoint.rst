@@ -1,9 +1,6 @@
 kan package
 ===========
 
-Submodules
-----------
-
 kan.KAN module
 --------------
 
@@ -51,11 +48,19 @@ kan.utils module
    :members:
    :undoc-members:
    :show-inheritance:
+   
+kan.compiler module
+-------------------
 
-Module contents
----------------
+.. automodule:: kan.compiler
+   :members:
+   :undoc-members:
+   :show-inheritance:
+   
+kan.hypothesis module
+---------------------
 
-.. automodule:: kan
+.. automodule:: kan.hypothesis
    :members:
    :undoc-members:
    :show-inheritance:
